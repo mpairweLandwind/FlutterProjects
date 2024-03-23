@@ -1,0 +1,10 @@
+{
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "yaml.schemas": {
+        "file:///home/landwind/.vscode/extensions/docsmsft.docs-yaml-1.0.1/dist/toc.schema.json": [
+            "/toc\\.yml/i"
+        ],
+        "https://json.schemastore.org/eslintrc.json": "file:///home/landwind/FlutterProjects/zaloni_dental_hub/pubspec.yaml"
+    }
+}

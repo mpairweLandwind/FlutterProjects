@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "989018014187",
+    "project_id": "zalonidentalhub",
+    "storage_bucket": "zalonidentalhub.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989018014187:android:945a019591fa006ee999ae",
+        "android_client_info": {
+          "package_name": "com.example.zaloni_dental_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIeexhnwPLdCA9683lD4bfGiE6qmKT-2E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
