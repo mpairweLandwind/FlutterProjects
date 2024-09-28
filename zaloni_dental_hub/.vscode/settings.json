@@ -6,5 +6,6 @@
             "/toc\\.yml/i"
         ],
         "https://json.schemastore.org/eslintrc.json": "file:///home/landwind/FlutterProjects/zaloni_dental_hub/pubspec.yaml"
-    }
+    },
+    "cmake.sourceDirectory": "/home/landwind/FlutterProjects/zaloni_dental_hub/windows/flutter"
 }
