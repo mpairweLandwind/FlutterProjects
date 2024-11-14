@@ -1,6 +1,7 @@
 import 'package:carousel_slider/carousel_slider.dart';
-//import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
+//import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:zaloni_dental_hub/widgets/products_widget.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -23,75 +24,15 @@ class _HomeScreenState extends State<HomeScreen> {
     'assets/braket.jpg',
     'assets/buccal-tube-430x430.jpeg',
     'assets/profile.jpg',
-    'assets/BURS.jpg',
-    'assets/CALCIUM-1.jpg',
-    'assets/camera.jpg',
-    'assets/Cention-N-starter-kit-430x430.jpg',
-    'assets/china-2-430x358.jpg',
-    'assets/COMPRESSOR.jpg',
-    'assets/dental_chair.jpg',
-    'assets/Dental_Disposable.jpg',
-    'assets/dental-chair.jpg',
-    'assets/DENTAL-CHIAR.jpg',
-    'assets/Dentsply-Protaper-Universa.jpg',
-    'assets/dycal-hidroxide-of-calcium-dentsply_2.jpg',
-    'assets/EDON.jpg',
-    'assets/elastics.jpg',
-    'assets/ELEVATORS.jpg',
-    'assets/ENDO-1.jpg',
-    'assets/endo-ruler.jpg',
-    'assets/ETCHANT-430x209.jpg',
+  
+  
   ];
 
   final List promotions = [
     'assets/EXCAR.png',
     'assets/fiber-post-430x430.jpg',
     'assets/finger-sperder-430x430.webp',
-    'assets/FORMACRESOL.jpg',
-    'assets/Fuji-II-430x430.jpg',
-    'assets/GC_FUJI_1.jpg',
-    'assets/GC-Fuji-IX-430x430.jpg',
-    'assets/germany.jpg',
-    'assets/GP-CLEAN-2.jpg',
-    'assets/gutta-percha.png',
-    'assets/H-FILE.jpg',
-    'assets/IMPRESSION.jpg',
-    'assets/k-files.jpg',
-    'assets/k-flex--430x430.jpg',
-    'assets/ligature-ties.jpg',
-    'asssets/lower-anterior.jpg',
-    'assets/lower-molar-430x287.jpg',
-    'assets/lower-premolar.jpg',
-    'assets/MIRROR.jpg',
-    'assets/mixing-bowl-with-spatula.jpg',
-    'assets/mobile_working_dental_unit.jpg',
-    'assets/MOLAR-RT-430x430.jpg',
-    'assets/oil_free_air_compressor.jpg',
-    'asssets/open-spring.jpg',
-    'assets/PAPER-POINT.jpg',
-    'assets/Portable-Dental-X-Ray-Machine-Unit-430x430.jpeg',
-    'assets/PORTAL-CHAIR-430x406.png',
-    'assets/post-pins.jpg',
-    'assets/Power-Chain.jpg',
-    'assets/PROB-430x430.jpg',
-    'assets/PULP-FILL-2.jpg',
-    'assets/pyrax-rc-clean-softening-gutta-percha-15-ml-2018071217-94ugyap6.jpg',
-    'assets/root_canal_obturoot_cement-400x400-1.jpg',
-    'assets/rubyflow.png',
-    'assets/SEALER.jpg',
-    'assets/SIL-IONOMER-430x366.jpg',
-    'assets/STONE.jpg',
-    'assets/teeth_whiting_maschine-430x402.jpg',
-    'assets/tooth_whitening-kit-430x287.jpg',
-    'assets/TRAYS.jpg',
-    'assets/ugandan-made-430x326.jpg',
-    'assets/UPPER-ROOT-F-1-430x430.jpg',
-    'assets/wall_mount_units.jpg',
-    'assets/wire.jpg',
-    'assets/WORKING-UNITE-430x430.jpg',
-    'assets/Z-BUR.png',
-    'assets/zero-box-430x430.jpg',
-    'assets/ZERO-BOX-AIR.jpg',
+
   ];
 
    List category = [
@@ -110,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
  int _currentIndex = 0;
   final CarouselController _carouselController = CarouselController();
+  
 
   @override
   Widget build(BuildContext context) {
