@@ -10,13 +10,15 @@ class ProductRegistrationScreen extends StatefulWidget {
   const ProductRegistrationScreen({super.key});
 
   @override
-  State<ProductRegistrationScreen> createState() => _ProductRegistrationScreenState();
+  State<ProductRegistrationScreen> createState() =>
+      _ProductRegistrationScreenState();
 }
 
 class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
-  
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   String? _selectedCategory;
   String? _selectedsubCategory;
   String? _productName;
@@ -24,7 +26,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
   double? _salePrice;
   double? _discountPrice;
   String? _description;
-  
+
   List<File> _images = []; // List to hold selected images
   List<String?> _fileNames = [];
 
@@ -92,7 +94,8 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
     List<String> imageUrls = [];
 
     for (int i = 0; i < _images.length; i++) {
-      final ref = FirebaseStorage.instance.ref().child('uploads/${_fileNames[i]}');
+      final ref =
+          FirebaseStorage.instance.ref().child('uploads/${_fileNames[i]}');
       await ref.putFile(_images[i]);
       String imageUrl = await ref.getDownloadURL();
       imageUrls.add(imageUrl);
@@ -165,7 +168,7 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
             child: Column(
               children: [
                 DropdownButtonFormField<String>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   hint: const Text('Select Category'),
                   items: categories.map((category) {
                     return DropdownMenuItem(
@@ -178,13 +181,14 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                       _selectedCategory = value;
                     });
                   },
-                  validator: (value) => value == null ? 'Please select a category' : null,
+                  validator: (value) =>
+                      value == null ? 'Please select a category' : null,
                   onSaved: (value) {
                     _selectedCategory = value;
                   },
                 ),
                 DropdownButtonFormField<String>(
-                  value: _selectedsubCategory,
+                  initialValue: _selectedsubCategory,
                   hint: const Text('Select subCategory'),
                   items: subCategories.map((subCategory) {
                     return DropdownMenuItem(
@@ -197,7 +201,8 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                       _selectedsubCategory = value;
                     });
                   },
-                  validator: (value) => value == null ? 'Please select a subcategory' : null,
+                  validator: (value) =>
+                      value == null ? 'Please select a subcategory' : null,
                   onSaved: (value) {
                     _selectedsubCategory = value;
                   },
@@ -218,7 +223,9 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                   decoration: const InputDecoration(labelText: 'Quantity'),
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                    if (value == null || value.isEmpty || int.tryParse(value) == null) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        int.tryParse(value) == null) {
                       return 'Please enter a valid quantity';
                     }
                     return null;
@@ -229,9 +236,12 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                 ),
                 TextFormField(
                   decoration: const InputDecoration(labelText: 'Sale Price'),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
-                    if (value == null || value.isEmpty || double.tryParse(value) == null) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        double.tryParse(value) == null) {
                       return 'Please enter a valid sale price';
                     }
                     return null;
@@ -241,10 +251,14 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                   },
                 ),
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Discount Price'),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration:
+                      const InputDecoration(labelText: 'Discount Price'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
-                    if (value == null || value.isEmpty || double.tryParse(value) == null) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        double.tryParse(value) == null) {
                       return 'Please enter a valid discount price';
                     }
                     return null;
@@ -270,7 +284,8 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
                       itemBuilder: (ctx, index) {
                         return Padding(
                           padding: const EdgeInsets.all(8.0),
-                          child: Image.file(_images[index], width: 100, height: 100, fit: BoxFit.cover),
+                          child: Image.file(_images[index],
+                              width: 100, height: 100, fit: BoxFit.cover),
                         );
                       },
                     ),
@@ -293,7 +308,8 @@ class _ProductRegistrationScreenState extends State<ProductRegistrationScreen> {
 }
 
 class FirebaseService {
-  final CollectionReference _productsCollection = FirebaseFirestore.instance.collection('products');
+  final CollectionReference _productsCollection =
+      FirebaseFirestore.instance.collection('products');
 
   Future<void> addProduct(Map<String, dynamic> productData) async {
     await _productsCollection.add(productData);
