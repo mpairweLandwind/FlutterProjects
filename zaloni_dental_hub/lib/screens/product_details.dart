@@ -1,67 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zaloni_dental_hub/models/cart_icon_with_badge.dart';
 import 'package:zaloni_dental_hub/models/cart_item.dart';
 import 'package:zaloni_dental_hub/models/cart_model.dart';
 import 'package:zaloni_dental_hub/models/product.dart';
-import 'package:zaloni_dental_hub/screens/cart_screen.dart';
 
-class ProductDetails extends StatelessWidget {
+class ProductDetails extends ConsumerWidget {
+  final String categoryName;
+  final String categoryImageUrl;
+  final List<String> subcategories;
   final List<Product> products;
 
   const ProductDetails({
     required Key key,
+    required this.categoryName,
+    required this.categoryImageUrl,
+    required this.subcategories,
     required this.products,
   }) : super(key: key);
+  // Helper function to format numbers with commas
+  String _formatPrice(double price) {
+    return 'UGX ${price.toStringAsFixed(2).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        )}';
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(products.first.subcategory),
-        actions: _buildAppBarActions(),
-      ),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(8),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: calculateCrossAxisCount(context),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: calculateChildAspectRatio(context),
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (products.isEmpty) {
+      return const Center(child: Text("No products available."));
+    }
+
+    // Group products by subcategory
+    final Map<String, List<Product>> groupedProducts = {};
+    for (var product in products) {
+      if (!groupedProducts.containsKey(product.subcategory)) {
+        groupedProducts[product.subcategory] = [];
+      }
+      groupedProducts[product.subcategory]!.add(product);
+    }
+
+    final List<String> subcategories = groupedProducts.keys.toList();
+
+    return DefaultTabController(
+      length: subcategories.length,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(categoryName), // Display category name
+          actions: _buildAppBarActions(ref),
+          bottom: TabBar(
+            isScrollable:
+                true, // Allow horizontal scrolling for many subcategories
+            tabs: subcategories.map((subcategory) {
+              return Tab(text: subcategory);
+            }).toList(),
+          ),
         ),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          return _buildProductCard(context, products[index]);
-        },
+        body: TabBarView(
+          children: subcategories.map((subcategory) {
+            return _buildProductLayout(
+                context, ref, groupedProducts[subcategory]!);
+          }).toList(),
+        ),
       ),
     );
   }
 
-  int calculateCrossAxisCount(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth <= 600) {
-      return 2; // For smaller screens
-    } else if (screenWidth <= 1200) {
-      return 3; // For medium screens
-    } else {
-      return 4; // For larger screens
-    }
-  }
-
-  double calculateChildAspectRatio(BuildContext context) {
-    double screenWidth = MediaQuery.of(context).size.width;
-    // You may need to adjust these values to fit your content
-    if (screenWidth <= 600) {
-      return 0.75;
-    } else if (screenWidth <= 1200) {
-      return 0.85;
-    } else {
-      return 1.0;
-    }
-  }
-
-  List<Widget> _buildAppBarActions() {
+  List<Widget> _buildAppBarActions(WidgetRef ref) {
     return [
       IconButton(
         icon: const Icon(Icons.search),
@@ -70,14 +77,268 @@ class ProductDetails extends StatelessWidget {
         },
       ),
       const CartIconWithBadge(),
-      
     ];
   }
 
-  Widget _buildProductCard(
-    BuildContext context,
-    Product product,
-  ) {
+  Widget _buildProductLayout(
+      BuildContext context, WidgetRef ref, List<Product> products) {
+    if (products.length == 1) {
+      // Single product occupies full width
+      return _buildSingleProductCard(context, ref, products.first);
+    } else {
+      // Multiple products use a 2-column grid
+      return _buildProductGrid(context, products);
+    }
+  }
+
+  Widget _buildSingleProductCard(
+      BuildContext context, WidgetRef ref, Product product) {
+    // Calculate percentage reduction to 1 decimal place
+    double percentageReduction = 0;
+    if (product.salePrice > 0 && product.discountPrice < product.salePrice) {
+      percentageReduction =
+          (1 - (product.discountPrice / product.salePrice)) * 100;
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Enhanced Image Section with Carousel for Multiple Images
+          _buildImageSection(product, percentageReduction),
+          const SizedBox(height: 16),
+          Text(
+            product.name,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (product.salePrice != product.discountPrice)
+                Text(
+                  _formatPrice(product.salePrice),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        decoration: TextDecoration.lineThrough,
+                        color: Colors.grey,
+                      ),
+                ),
+              const SizedBox(width: 8),
+              Text(
+                _formatPrice(product.discountPrice),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _buildRatingBar(4.5), // Assuming you pass the actual rating
+          const SizedBox(height: 16),
+          Text(
+            product.description,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity, // Make button take maximum width
+            child: ElevatedButton(
+              onPressed: () {
+                ref.read(cartProvider.notifier).addToCart(
+                      CartItem(
+                        name: product.name,
+                        salePrice: product.salePrice,
+                        discountPrice: product.discountPrice,
+                        percentageReduction: percentageReduction,
+                        imageUrl: product.imageUrl,
+                        quantity: 1,
+                      ),
+                    );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Product added to cart!'),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                foregroundColor: Colors.white,
+                backgroundColor: Theme.of(context).primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Add to Cart'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImageSection(Product product, double percentageReduction) {
+    // Use the actual imageUrls from the product
+    List<String> imageUrls = product.imageUrls.isNotEmpty
+        ? product.imageUrls
+        : [
+            product.imageUrl
+          ]; // Fallback to single image for backward compatibility
+
+    // Create a PageController for the carousel
+    final PageController pageController = PageController();
+
+    return Stack(
+      children: [
+        AspectRatio(
+          aspectRatio: 1,
+          child: PageView.builder(
+            controller: pageController,
+            itemCount: imageUrls.length,
+            itemBuilder: (context, index) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrls[index],
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.error, size: 50, color: Colors.red),
+                ),
+              );
+            },
+          ),
+        ),
+        // Left Arrow
+        if (imageUrls.length > 1)
+          Positioned(
+            left: 8,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                  onPressed: () {
+                    pageController.previousPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        // Right Arrow
+        if (imageUrls.length > 1)
+          Positioned(
+            right: 8,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon:
+                      const Icon(Icons.arrow_forward_ios, color: Colors.white),
+                  onPressed: () {
+                    pageController.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        // Image Counter Indicator
+        if (imageUrls.length > 1)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: ValueNotifier(0),
+                  builder: (context, value, child) {
+                    // Listen to page changes
+                    pageController.addListener(() {
+                      if (pageController.page != null) {
+                        (context as Element).markNeedsBuild();
+                      }
+                    });
+
+                    int currentPage =
+                        pageController.hasClients && pageController.page != null
+                            ? pageController.page!.round()
+                            : 0;
+
+                    return Text(
+                      '${currentPage + 1} / ${imageUrls.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        // Discount Percentage Badge
+        if (percentageReduction > 0)
+          Positioned(
+            top: 16,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '-${percentageReduction.toStringAsFixed(1)}%',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildProductGrid(BuildContext context, List<Product> products) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2, // 2-column grid
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75, // Adjust aspect ratio for better layout
+      ),
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        return _buildProductCard(context, products[index]);
+      },
+    );
+  }
+
+  Widget _buildProductCard(BuildContext context, Product product) {
     // Calculate percentage reduction to 1 decimal place
     double percentageReduction = 0;
     if (product.salePrice > 0 && product.discountPrice < product.salePrice) {
@@ -86,127 +347,77 @@ class ProductDetails extends StatelessWidget {
     }
 
     return Card(
-      elevation: 2,
-      child: SingleChildScrollView(
-        // Prevent vertical overflow
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ProductDetails(
+                key: ValueKey(product.name),
+                products: [product],
+                categoryName: '',
+                categoryImageUrl: '',
+                subcategories: [],
+              ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 1,
-                  child: Image.network(
-                    product.imageUrl,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                if (percentageReduction > 0)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '-${percentageReduction.toStringAsFixed(1)}%', // Show reduction to 1 decimal place
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-              child: Text(
-                product.name,
-                style: Theme.of(context).textTheme.titleMedium,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: [
-                  if (product.salePrice != product.discountPrice)
-                    Flexible(
-                      // Prevent horizontal overflow
-                      child: Text(
-                        'UGX ${product.salePrice.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              decoration: TextDecoration.lineThrough,
-                              color: Colors.grey,
-                            ),
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    // Prevent horizontal overflow
-                    child: Text(
-                      'UGX ${product.discountPrice.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          children: [
+            // Enhanced Image Section with Carousel for Multiple Images
+            _buildImageSection(product, percentageReduction),
+            // Scrollable Bottom Section
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product Name
+                    Text(
+                      product.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
                           ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child:
-                  _buildRatingBar(4.5), // Assuming you pass the actual rating
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(
-                product.description,
-                style: Theme.of(context).textTheme.bodyMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Theme.of(context).primaryColor,
+                    const SizedBox(height: 4),
+
+                    // Discount Price Above Sale Price
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _formatPrice(product.discountPrice),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                        ),
+                        if (product.salePrice != product.discountPrice)
+                          Text(
+                            _formatPrice(product.salePrice),
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      decoration: TextDecoration.lineThrough,
+                                      color: Colors.grey,
+                                    ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Rating Bar
+                    _buildRatingBar(3.5), // Assuming you pass the actual rating
+                  ],
                 ),
-                child: const Text('Add to Cart'),
-                onPressed: () {
-                  Provider.of<Cart>(context, listen: false).addItem(
-                    // Use Provider to add item to the cart
-                    CartItem(
-                      name: product.name,
-                      salePrice: product.salePrice,
-                      discountPrice: product.discountPrice,
-                      percentageReduction:
-                          percentageReduction, // Add calculated reduction here
-                      imageUrl: product.imageUrl,
-                      quantity: product.quantity,
-                    ),
-                  );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CartScreen(
-                        cartItems: const [],
-                        cartTotal: 0,
-                        cart: Cart(),
-                      ),
-                    ),
-                  );
-                },
               ),
             ),
           ],
@@ -214,6 +425,7 @@ class ProductDetails extends StatelessWidget {
       ),
     );
   }
+
   Widget _buildRatingBar(double rating) {
     return RatingBarIndicator(
       rating: rating,
@@ -222,7 +434,7 @@ class ProductDetails extends StatelessWidget {
         color: Colors.amber,
       ),
       itemCount: 5,
-      itemSize: 20.0,
+      itemSize: 16.0,
       direction: Axis.horizontal,
     );
   }

@@ -1,79 +1,95 @@
 import 'package:flutter/material.dart';
-import 'package:zaloni_dental_hub/models/cart_item.dart'; 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zaloni_dental_hub/providers/authprovider.dart';
 
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends ConsumerWidget {
+  static const routeName = '/account';
 
-   static const routeName = '/cart';
-  final List<CartItem> cartItems;
-  final double cartTotal;
-
-
-  const AccountScreen({super.key,
-    required this.cartItems,
-    required this.cartTotal,
-  });
+  const AccountScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth =
+        ref.watch(authProvider); // Fetching the authentication provider
+    final user = auth.userModel; // Accessing user data
+    final isLoggedIn = auth.isAuthenticated; // Checking login state
+
     return Scaffold(
-  appBar: AppBar(
-    title: const Text('Shopping Cart'),
-    actions: [
-      IconButton(
-        icon: const Icon(Icons.delete_forever),
-        onPressed: () {
-          // Code to clear the cart
-        },
+      appBar: AppBar(
+        title: const Text('Account'),
       ),
-    ],
-  ),
-  body: ListView.builder(
-    itemCount: cartItems.length,
-    itemBuilder: (BuildContext context, int index) {
-      return CartItemWidget(cartItem: cartItems[index]);
-    },
-  ),
-  bottomNavigationBar: BottomAppBar(
-    child: Container(
-      height: 120,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Total:'),
-              Text('\$${cartTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          ElevatedButton(
-            child: const Text('CHECKOUT'),
-            onPressed: () {
-              // Code to initiate checkout
-            },
-          ),
-        ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildWelcomeSection(context, isLoggedIn, user, ref),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
-    ),
-  ),
-);
-  }
-}
-
-
-class CartItemWidget extends StatelessWidget {
-  final CartItem cartItem;
-
-  const CartItemWidget({super.key, required this.cartItem});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(cartItem.name),
-      subtitle: Text('\$${cartItem.discountPrice.toStringAsFixed(2)}'),
-      // Add other UI elements or functionality as needed
     );
   }
-} 
+
+  Widget _buildWelcomeSection(
+      BuildContext context, bool isLoggedIn, dynamic user, WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CircleAvatar(
+            radius: 40,
+            backgroundImage: AssetImage('assets/account.png'),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            isLoggedIn && user != null
+                ? 'Welcome To ZaloniDentalHub, ${user.firstName} ${user.lastName}'
+                : 'Welcome To ZaloniDentalHub',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (!isLoggedIn)
+            Row(
+              children: [
+                _buildButton('Login', () {
+                  Navigator.pushNamed(context, '/loginScreen');
+                }),
+                const SizedBox(width: 10),
+                _buildButton('Register', () {
+                  Navigator.pushNamed(context, '/registerScreen');
+                }),
+              ],
+            )
+          else
+            _buildButton('Logout', () {
+              ref.read(authProvider.notifier).logout();
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildButton(String text, VoidCallback onPressed) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      ),
+      onPressed: onPressed,
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.blue),
+      ),
+    );
+  }
+}

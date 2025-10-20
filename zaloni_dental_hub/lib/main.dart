@@ -1,30 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:zaloni_dental_hub/login_page.dart';
 import 'package:zaloni_dental_hub/main_screen.dart';
 import 'package:zaloni_dental_hub/models/cart_model.dart';
+import 'package:zaloni_dental_hub/providers/product_provider.dart';
 import 'package:zaloni_dental_hub/register_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:zaloni_dental_hub/screens/account_screen.dart';
 import 'package:zaloni_dental_hub/screens/cart_screen.dart';
-import 'package:zaloni_dental_hub/screens/product_screen.dart';
+import 'package:zaloni_dental_hub/screens/product_register.dart';
 import 'firebase_options.dart';
-import 'package:zaloni_dental_hub/providers/product_provider.dart'; // Import ProductProvider
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => Cart()), // Cart provider
-        ChangeNotifierProvider( create: (context) => ProductProvider()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Configure edge-to-edge for Android 15+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -35,44 +30,60 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       routes: {
         '/loginScreen': (context) => const LoginScreen(),
-        '/registerScreen': (context) => const Register_Screen(),
+        '/registerScreen': (context) => const RegisterScreen(),
         '/Dashboard': (context) => const MainScreen(),
-        '/productScreen': (context) => const ProductScreen(),
-        '/CartScreen': (context) => CartScreen(cartItems: const [], cartTotal: 0, cart: Cart()),
-        '/accontScreen': (context) => const AccountScreen(cartItems: [], cartTotal: 0.0),
+        '/CartScreen': (context) => CartScreen(
+              cartItems: const [],
+              cartTotal: 0,
+              cart: Cart(),
+              user: null,
+            ),
+        '/accountScreen': (context) => const AccountScreen(),
+        '/ProductregisterScreen': (context) =>
+            const ProductRegistrationScreen(),
       },
       title: 'Zaloni Dental Hub',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Zaloni Dental Hub'),
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const SplashScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class SplashScreen extends ConsumerStatefulWidget {
+  const SplashScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Add a delay of 4 seconds before navigating to MainScreen
-    Future.delayed(const Duration(seconds: 4), () {
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      await Future.wait<void>([
+        ref.read(productProvider.notifier).fetchProducts(null),
+        ref.read(productProvider.notifier).fetchCategory(),
+        ref.read(productProvider.notifier).fetchPromotion(),
+        ref.read(productProvider.notifier).fetchSpecialCategories(),
+      ]); // Get the loaded products
+    } catch (e) {
+      debugPrint("Error loading data: $e");
+    }
+
+    if (mounted) {
+      await Future.delayed(const Duration(seconds: 3)); // Wait for 5 seconds
       if (mounted) {
-        // Ensure the widget is still mounted before using BuildContext
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
-    });
+    }
   }
 
   @override
@@ -86,10 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Colors.lightBlue.shade300,
-                Colors.blueAccent.shade700,
-              ],
+              colors: [Colors.lightBlue.shade300, Colors.blueAccent.shade700],
             ),
           ),
           child: Column(
@@ -118,19 +126,21 @@ class _MyHomePageState extends State<MyHomePage> {
               const Text(
                 'Complete dental care at your fingertips.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18.0,
-                  color: Colors.white70,
-                ),
+                style: TextStyle(fontSize: 18.0, color: Colors.white70),
               ),
               const Spacer(),
-               const Spacer(),
+              const Spacer(),
               ElevatedButton(
                 onPressed: () {
-                  // Navigate to the next screen, perhaps a sign-in or registration page.
+                  // Navigate to the MainScreen (Dashboard)
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MainScreen()),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.blueAccent.shade700, backgroundColor: Colors.white,
+                  foregroundColor: Colors.blueAccent.shade700,
+                  backgroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30.0),
@@ -138,10 +148,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 child: const Text(
                   'Get Started',
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 24.0),

@@ -1,19 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'firebase_service.dart'; // Import your Firebase service
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zaloni_dental_hub/providers/authprovider.dart';
 
-// ignore: camel_case_types
-class Register_Screen extends StatefulWidget {
-  const Register_Screen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
-  _RegisterScreenState createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<Register_Screen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -32,131 +29,107 @@ class _RegisterScreenState extends State<Register_Screen> {
     super.dispose();
   }
 
-  bool _isPasswordCompliant(String password, [int minLength = 6]) {
-    if (password.isEmpty || password.length < minLength) {
-      return false;
-    }
-    bool hasUppercase = password.contains(RegExp(r'[A-Z]'));
-    bool hasDigits = password.contains(RegExp(r'[0-9]'));
-    bool hasLowercase = password.contains(RegExp(r'[a-z]'));
-    bool hasSpecialCharacters =
-        password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
-    return hasDigits & hasUppercase & hasLowercase & hasSpecialCharacters;
-  }
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      final success = await ref.read(authProvider.notifier).register(
+            firstName: _firstNameController.text,
+            lastName: _lastNameController.text,
+            email: _emailController.text,
+            phoneNumber: _phoneNumberController.text,
+            password: _passwordController.text,
+          );
 
-void _submitForm() async {
-  if (_formKey.currentState!.validate()) {
-    var scaffoldMessenger = ScaffoldMessenger.of(_formKey.currentContext!);
-    scaffoldMessenger.showSnackBar(
-      const SnackBar(content: Text('Processing Data')),
-    );
-
-    FirebaseService firebaseService = FirebaseService();
-
-    try {
-      UserCredential? userCredential = await firebaseService.registerUser(
-        email: _emailController.text,
-        password: _passwordController.text,
-        firstName: _firstNameController.text,
-        lastName: _lastNameController.text,
-        phoneNumber: _phoneNumberController.text,
-      );
-
-      if (userCredential != null) {
-        Navigator.of(_formKey.currentContext!).pushReplacementNamed('/loginScreen');
+      if (success && mounted) {
+        // Navigate to LoginScreen after successful registration
+        Navigator.pushReplacementNamed(context, '/loginScreen');
       }
-    } on FirebaseAuthException catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('Failed to register: ${e.message}')),
-      );
     }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Register')),
       body: SingleChildScrollView(
+        // Make the screen scrollable
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
+              children: [
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'First Name'),
                   controller: _firstNameController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your first name';
-                    }
-                    return null;
-                  },
+                  decoration: const InputDecoration(labelText: 'First Name'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Enter first name' : null,
                 ),
+                const SizedBox(height: 16), // Add spacing
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Last Name'),
                   controller: _lastNameController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your last name';
-                    }
-                    return null;
-                  },
+                  decoration: const InputDecoration(labelText: 'Last Name'),
+                  validator: (value) =>
+                      value!.isEmpty ? 'Enter last name' : null,
                 ),
+                const SizedBox(height: 16), // Add spacing
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Email'),
                   controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    } else if (!value.contains('@')) {
-                      return 'Please enter a valid email address';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value!.isEmpty || !value.contains('@')
+                      ? 'Enter valid email'
+                      : null,
                 ),
+                const SizedBox(height: 16), // Add spacing
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Phone Number'),
                   controller: _phoneNumberController,
+                  decoration: const InputDecoration(labelText: 'Phone Number'),
                   keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your phone number';
-                    }
-                    return null;
-                  },
+                  validator: (value) =>
+                      value!.isEmpty ? 'Enter phone number' : null,
                 ),
+                const SizedBox(height: 16), // Add spacing
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Password'),
                   controller: _passwordController,
+                  decoration: const InputDecoration(labelText: 'Password'),
                   obscureText: true,
-                  validator: (value) {
-                    if (value == null || !_isPasswordCompliant(value)) {
-                      return 'Enter a valid password with uppercase, lowercase, numbers, and special chars';
-                    }
-                    return null;
-                  },
+                  validator: (value) =>
+                      value!.length < 6 ? 'Min 6 characters' : null,
                 ),
+                const SizedBox(height: 16), // Add spacing
                 TextFormField(
-                  decoration: const InputDecoration(labelText: 'Confirm Password'),
                   controller: _confirmPasswordController,
+                  decoration:
+                      const InputDecoration(labelText: 'Confirm Password'),
                   obscureText: true,
-                  validator: (value) {
-                    if (value != _passwordController.text) {
-                      return 'Passwords do not match';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value != _passwordController.text
+                      ? 'Passwords do not match'
+                      : null,
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _submitForm,
-                  child: const Text('Register'),
+                  onPressed: authState.isLoading ? null : _submitForm,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 50), // Full-width button
+                  ),
+                  child: authState.isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('Register'),
                 ),
+                if (authState.errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Text(
+                      authState.errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                SizedBox(
+                    height:
+                        screenHeight * 0.05), // Add extra space at the bottom
               ],
             ),
           ),
@@ -165,5 +138,3 @@ void _submitForm() async {
     );
   }
 }
-
-

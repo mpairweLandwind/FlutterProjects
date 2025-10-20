@@ -6,7 +6,10 @@ class Product {
   final double salePrice;
   final double discountPrice;
   final String description;
-  final String imageUrl;
+  final List<String> imageUrls; // Multiple image URLs
+
+  // Backward compatibility: primary image is the first URL
+  String get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : '';
 
   Product({
     required this.category,
@@ -16,8 +19,8 @@ class Product {
     required this.salePrice,
     required this.discountPrice,
     required this.description,
-    required this.imageUrl,
-  });
+    List<String>? imageUrls,
+  }) : imageUrls = imageUrls ?? [];
 
   // Derived attribute for percentage reduction
   double get percentageReduction {
@@ -29,6 +32,17 @@ class Product {
   }
 
   factory Product.fromMap(Map<String, dynamic> map) {
+    // Handle both single imageUrl and multiple imageUrls for backward compatibility
+    List<String> imageUrls = [];
+
+    if (map['imageUrls'] != null && map['imageUrls'] is List) {
+      imageUrls = (map['imageUrls'] as List<dynamic>)
+          .map((url) => url.toString())
+          .toList();
+    } else if (map['imageUrl'] != null && map['imageUrl'] is String) {
+      imageUrls = [map['imageUrl'] as String];
+    }
+
     return Product(
       category: map['category'] as String,
       subcategory: map['subcategory'] as String,
@@ -37,7 +51,7 @@ class Product {
       salePrice: map['salePrice'] as double,
       discountPrice: map['discountPrice'] as double,
       description: map['description'] as String,
-      imageUrl: map['imageUrl'] as String,
+      imageUrls: imageUrls,
     );
   }
 }

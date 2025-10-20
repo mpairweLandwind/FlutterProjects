@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zaloni_dental_hub/models/product.dart';
 
-
 class CartItemWidget extends StatelessWidget {
   final Product product;
   final int quantity;

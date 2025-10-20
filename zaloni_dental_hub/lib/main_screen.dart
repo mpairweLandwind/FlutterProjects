@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:zaloni_dental_hub/models/cart_model.dart';
 import 'package:zaloni_dental_hub/screens/account_screen.dart';
 import 'package:zaloni_dental_hub/screens/cart_screen.dart';
 import 'package:zaloni_dental_hub/screens/category_screen.dart';
 import 'package:zaloni_dental_hub/screens/home_screen.dart';
 import 'package:zaloni_dental_hub/screens/product_register.dart';
+
+import 'models/cart_model.dart' show Cart;
 //import 'package:zaloni_dental_hub/screens/product_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -20,9 +21,14 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _widgetOptions = [
     const HomeScreen(),
     const CategoriesScreen(),
-     CartScreen(cartItems: const [], cartTotal: 0, cart: Cart(),),
+    CartScreen(
+      cartItems: const [],
+      cartTotal: 0,
+      cart: Cart(),
+      user: null,
+    ),
     const ProductRegistrationScreen(),
-    const AccountScreen(cartItems: [], cartTotal: 0.0),
+    const AccountScreen(),
   ];
 
   @override
@@ -36,7 +42,7 @@ class _MainScreenState extends State<MainScreen> {
         children: _widgetOptions,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,        
+        currentIndex: _selectedIndex,
         selectedItemColor: const Color.fromARGB(255, 21, 104, 172),
         unselectedItemColor: Colors.black54,
         showUnselectedLabels: true,
@@ -44,13 +50,15 @@ class _MainScreenState extends State<MainScreen> {
         iconSize: 28,
         onTap: _onItemTapped,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),          
-          BottomNavigationBarItem(icon: Icon(Icons.category), label: 'Categories '),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart_outlined ), label: 'Cart'), 
-          BottomNavigationBarItem(icon: Icon(Icons.add ), label: 'Add product'), 
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline_sharp), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.category), label: 'Categories '),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.shopping_cart_outlined), label: 'Cart'),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add product'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline_sharp), label: 'Profile'),
         ],
-       
       ),
     );
   }

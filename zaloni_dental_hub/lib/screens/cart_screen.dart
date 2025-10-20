@@ -1,106 +1,237 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zaloni_dental_hub/models/cart_item.dart';
 import 'package:zaloni_dental_hub/models/cart_model.dart';
+import 'package:zaloni_dental_hub/models/user_model.dart';
+import 'package:zaloni_dental_hub/providers/authprovider.dart';
 
-class CartScreen extends StatelessWidget {
-  const CartScreen({super.key, required List cartItems, required int cartTotal, required Cart cart}); // Removed unused parameters for simplicity
+class CartScreen extends ConsumerStatefulWidget {
+  const CartScreen(
+      {super.key,
+      required List cartItems,
+      required int cartTotal,
+      required Cart cart,
+      required user});
+
+  @override
+  ConsumerState<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends ConsumerState<CartScreen> {
+  // Helper function to format numbers with commas
+  String _formatPrice(double price) {
+    return 'UGX ${price.toStringAsFixed(2).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        )}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<Cart>(
-      builder: (context, cart, child) {
-        final subtotal = calculateSubtotal(cart.items);
+    final cartItems = ref.watch(cartProvider);
+    final auth = ref.watch(authProvider);
+    final user = auth.userModel;
+    final isLoggedIn = ref.watch(authProvider).isAuthenticated;
+    final double subtotal = cartItems.fold(
+      0.0,
+      (total, item) => total + (item.discountPrice * item.quantity),
+    );
 
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Cart'),
-          ),
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'Cart Summary',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Subtotal: UGX ${subtotal.toStringAsFixed(2)}'),
-                  ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Cart'),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (isLoggedIn && user != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Welcome ${user.firstName} ${user.lastName}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
                 ),
               ),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: cart.items.length,
+            ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Divider(),
+          ),
+          Expanded(
+            child: ListView(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Cart Summary',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Subtotal: ${_formatPrice(subtotal)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: cartItems.length,
                   itemBuilder: (context, index) {
-                    final CartItem item = cart.items[index];
+                    final CartItem item = cartItems[index];
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                      padding: const EdgeInsets.all(8.0),
                       child: Card(
-                        elevation: 2,
-                        child: ListTile(
-                          leading: Image.network(
-                            item.imageUrl,
-                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
-                          ),
-                          title: Text(
-                            item.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Flexible(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'UGX ${item.salePrice.toStringAsFixed(2)}',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    decoration: TextDecoration.lineThrough,
-                                    fontSize: 10,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                Text(
-                                  'UGX ${item.discountPrice.toStringAsFixed(2)}',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                Text(
-                                  '-${item.percentageReduction.toStringAsFixed(0)}%',
-                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 10,
-                                    color: Colors.amber,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        elevation: 5,
+                        shadowColor: Colors.grey.withAlpha((0.3 * 255).toInt()),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () => cart.removeItem(item),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8.0),
+                                child: Image.network(
+                                  item.imageUrl,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.error, size: 80),
+                                ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.remove),
-                                onPressed: () => cart.decrementItemQuantity(item),
-                              ),
-                              Text(item.quantity.toString()),
-                              IconButton(
-                                icon: const Icon(Icons.add),
-                                onPressed: () => cart.incrementItemQuantity(item),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      item.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          _formatPrice(item.discountPrice),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _formatPrice(item.salePrice),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '-${item.percentageReduction.toStringAsFixed(0)}%',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'ZaloniDentalHub Express',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.blue,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        TextButton.icon(
+                                          onPressed: () {
+                                            ref
+                                                .read(cartProvider.notifier)
+                                                .removeFromCart(item);
+                                          },
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            color: Colors.red,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'Remove',
+                                            style: TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        Row(
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.remove,
+                                                  size: 18),
+                                              onPressed: () {
+                                                if (item.quantity > 1) {
+                                                  ref
+                                                      .read(
+                                                          cartProvider.notifier)
+                                                      .decrementQuantity(item);
+                                                } else {
+                                                  ref
+                                                      .read(
+                                                          cartProvider.notifier)
+                                                      .removeFromCart(item);
+                                                }
+                                              },
+                                            ),
+                                            Text(
+                                              item.quantity.toString(),
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.add,
+                                                  size: 18),
+                                              onPressed: () => ref
+                                                  .read(cartProvider.notifier)
+                                                  .incrementQuantity(item),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -109,32 +240,118 @@ class CartScreen extends StatelessWidget {
                     );
                   },
                 ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Colors.grey, width: 0.5),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Total: UGX ${subtotal.toStringAsFixed(2)}'),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Implement checkout functionality
-                      },
-                      child: const Text('Checkout'),
+                    const Text(
+                      'Total:',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      _formatPrice(subtotal),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    if (isLoggedIn) {
+                      _checkout(cartItems, user!);
+                    } else {
+                      Navigator.pushNamed(context, '/accountScreen');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                  ),
+                  child: const Text('Order Now'),
+                ),
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
+  Future<void> _checkout(List<CartItem> cartItems, UserModel user) async {
+    if (cartItems.isEmpty) return;
 
+    final String message = _constructWhatsAppMessage(cartItems, user);
+    final String encodedMessage = Uri.encodeComponent(message);
+    const String businessPhoneNumber = '256 751 611 920';
+    final Uri whatsappUrl =
+        Uri.parse('https://wa.me/$businessPhoneNumber?text=$encodedMessage');
 
-  double calculateSubtotal(List<CartItem> items) {
-    return items.fold(0, (total, item) => total + item.discountPrice * item.quantity);
+    try {
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                  'WhatsApp is not installed. Please install WhatsApp to proceed.'),
+              action: SnackBarAction(
+                label: 'Install WhatsApp',
+                onPressed: () {
+                  final Uri playStoreUrl = Uri.parse(
+                    'https://play.google.com/store/apps/details?id=com.whatsapp',
+                  );
+                  launchUrl(playStoreUrl);
+                },
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  String _constructWhatsAppMessage(List<CartItem> cartItems, UserModel user) {
+    String message =
+        "Hello ZaloniDentalHub, I would like to place an order.\n\n";
+    message += "Name: ${user.firstName} ${user.lastName}\n";
+    message += "Phone: ${user.phoneNumber}\n\n";
+    message += "Cart Details:\n";
+
+    for (var item in cartItems) {
+      message +=
+          "${item.name} - ${_formatPrice(item.discountPrice)} x ${item.quantity}\n";
+    }
+
+    message +=
+        "\nTotal: ${_formatPrice(cartItems.fold(0.0, (total, item) => total + (item.discountPrice * item.quantity)))}";
+
+    return message;
   }
 }
